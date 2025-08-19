@@ -1,0 +1,54 @@
+import random
+
+courses = ["Math", "Physics", "Chemistry", "Biology", "CS"]
+teachers = ["T1", "T2", "T3", "T4", "T5"]
+timeslots = ["Mon-9AM", "Mon-11AM", "Tue-9AM", "Tue-11AM", "Wed-9AM"]
+
+POP_SIZE = 6
+GENERATIONS = 20
+MUTATION_RATE = 0.2
+
+def create_schedule():
+    return [(courses[i], teachers[i], random.choice(timeslots)) for i in range(len(courses))]
+
+def fitness(schedule):
+    clashes = 0
+    used_slots = {}
+    for course, teacher, slot in schedule:
+        if (teacher, slot) in used_slots:
+            clashes += 1
+        used_slots[(teacher, slot)] = (course, teacher, slot)
+    return len(courses) - clashes
+
+def selection(population):
+    sorted_pop = sorted(population, key=fitness, reverse=True)
+    return sorted_pop[:len(sorted_pop)//2]
+
+def crossover(parent1, parent2):
+    point = len(parent1) // 2
+    return parent1[:point] + parent2[point:]
+
+def mutate(schedule):
+    if random.random() < MUTATION_RATE:
+        idx = random.randint(0, len(schedule)-1)
+        course, teacher, _ = schedule[idx]
+        schedule[idx] = (course, teacher, random.choice(timeslots))
+    return schedule
+
+population = [create_schedule() for _ in range(POP_SIZE)]
+
+for gen in range(GENERATIONS):
+    population = selection(population)
+    new_population = []
+    while len(new_population) < POP_SIZE:
+        p1, p2 = random.sample(population, 2)
+        child = crossover(p1, p2)
+        child = mutate(child)
+        new_population.append(child)
+    population = new_population
+    best = max(population, key=fitness)
+    print(f"Generation {gen+1}: Best Fitness = {fitness(best)}")
+
+print("\nBest Timetable:")
+for course, teacher, slot in best:
+    print(f"{course} - {teacher} at {slot}")
