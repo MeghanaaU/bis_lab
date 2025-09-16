@@ -1,0 +1,44 @@
+import random
+import time
+
+# Fitness function
+def fitness(x):
+    return x**2  # Min at x=0
+
+# Parameters
+POP_SIZE = 6
+GENERATIONS = 20
+MUTATION_RATE = 0.2
+
+# Initialize population
+population = [random.uniform(-10, 10) for _ in range(POP_SIZE)]
+
+for gen in range(GENERATIONS):
+    # Simulate real-time changing environment
+    # e.g., shifting target slightly
+    shift = random.uniform(-0.5, 0.5)
+    
+    # Evaluate fitness (dynamic)
+    fitness_scores = [fitness(x - shift) for x in population]
+    
+    # Selection: top 50%
+    sorted_pop = [x for _, x in sorted(zip(fitness_scores, population))]
+    selected = sorted_pop[:POP_SIZE//2]
+
+    # Crossover and mutation
+    new_population = []
+    while len(new_population) < POP_SIZE:
+        p1, p2 = random.sample(selected, 2)
+        child = (p1 + p2) / 2
+        if random.random() < MUTATION_RATE:
+            child += random.uniform(-1, 1)
+        new_population.append(child)
+
+    population = new_population
+    best = min(population, key=lambda x: fitness(x - shift))
+    print(f"Generation {gen+1}: Best = {best:.5f}, Fitness = {fitness(best - shift):.5f}")
+    
+    # Simulate real-time update delay
+    time.sleep(0.2)
+
+print("\nOptimal Solution Found:", best)
