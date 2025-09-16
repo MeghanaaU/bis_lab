@@ -1,0 +1,119 @@
+import numpy as np
+import random
+
+def aco_tourist_planner_diverse(cities, n_ants=20, n_iterations=50, alpha=1, beta=3, rho=0.3, Q=50, exploration_prob=0.1):
+    """
+    Ant Colony Optimization for Tourist Travel Planning with diversity (exploration)
+    
+    Parameters:
+    - cities: list of tuples [(x1,y1), (x2,y2), ...] representing coordinates of places
+    - n_ants: number of ants per iteration
+    - n_iterations: number of iterations
+    - alpha: importance of pheromone
+    - beta: importance of distance
+    - rho: pheromone evaporation rate
+    - Q: pheromone deposit factor
+    - exploration_prob: chance to explore a random unvisited city
+    
+    Returns:
+    - best_path: list of indices representing optimal sightseeing order
+    - best_distance: total distance of the best path
+    """
+    n = len(cities)
+    
+    # Distance matrix
+    dist_matrix = np.zeros((n,n))
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                dist_matrix[i][j] = np.linalg.norm(np.array(cities[i]) - np.array(cities[j]))
+    
+    # Initialize pheromones
+    pheromone = np.ones((n,n))
+    
+    best_distance = float('inf')
+    best_path = None
+    
+    def probability(i, visited):
+        pher = np.copy(pheromone[i])
+        heuristic = 1 / (dist_matrix[i] + 1e-10)
+        pher[list(visited)] = 0
+        heuristic[list(visited)] = 0
+        weights = (pher**alpha) * (heuristic**beta)
+        return weights / weights.sum() if weights.sum() > 0 else weights
+    
+    def construct_solution():
+        path = [0]  # start from Hotel
+        visited = {0}
+        for _ in range(n-1):
+            i = path[-1]
+            unvisited = set(range(n)) - visited
+            
+            # Exploration: occasionally pick a random city
+            if random.random() < exploration_prob:
+                next_city = random.choice(list(unvisited))
+            else:
+                probs = probability(i, visited)
+                next_city = np.random.choice(range(n), p=probs)
+            
+            path.append(next_city)
+            visited.add(next_city)
+        return path
+    
+    def path_distance(path):
+        d = sum(dist_matrix[path[i]][path[i+1]] for i in range(n-1))
+        d += dist_matrix[path[-1]][path[0]]  # return to Hotel
+        return d
+    
+    def update_pheromones(paths, distances):
+        nonlocal pheromone
+        pheromone *= (1 - rho)
+        for path, dist in zip(paths, distances):
+            for i in range(n-1):
+                pheromone[path[i]][path[i+1]] += Q / dist
+                pheromone[path[i+1]][path[i]] += Q / dist
+            pheromone[path[-1]][path[0]] += Q / dist
+            pheromone[path[0]][path[-1]] += Q / dist
+    
+    # Main ACO loop
+    best_distances = []
+    for it in range(n_iterations):
+        paths, distances = [], []
+        for _ in range(n_ants):
+            path = construct_solution()
+            dist = path_distance(path)
+            paths.append(path)
+            distances.append(dist)
+            if dist < best_distance:
+                best_distance = dist
+                best_path = path
+        update_pheromones(paths, distances)
+        best_distances.append(best_distance)
+        print(f"Iteration {it+1}, Best Distance: {best_distance:.2f}")
+    
+    return best_path, best_distance, best_distances
+
+# ===========================
+# Example Usage (5 Places)
+# ===========================
+places_coords = [
+    (0,0),   # Hotel
+    (2,4),   # Museum
+    (5,2),   # Park
+    (6,6),   # Temple
+    (3,7)    # Market
+]
+
+places_names = {
+    0: "Hotel",
+    1: "Museum",
+    2: "Park",
+    3: "Temple",
+    4: "Market"
+}
+
+best_path, best_distance, _ = aco_tourist_planner_diverse(places_coords)
+
+print("\nBest Sightseeing Route:")
+print(" → ".join(places_names[i] for i in best_path + [best_path[0]]))
+print("Total Distance:", round(best_distance, 2))
