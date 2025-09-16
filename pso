@@ -1,0 +1,54 @@
+import random
+import math
+
+# Parameters
+num_particles = 10
+num_steps = 5  # steps in path
+w = 0.5
+c1 = 1.5
+c2 = 1.5
+max_iterations = 20
+
+start = (0, 0)
+target = (10, 10)
+obstacles = [(5, 5), (6, 6)]  # obstacle positions
+
+# Fitness function: minimize distance to target + penalty for obstacles
+def fitness(path):
+    x, y = path[-1]
+    dist_to_target = math.sqrt((x - target[0])**2 + (y - target[1])**2)
+    penalty = sum([10 if math.sqrt((x-o[0])**2 + (y-o[1])**2) < 1 else 0 for o in obstacles])
+    return dist_to_target + penalty
+
+# Initialize particles (random paths)
+particles = [[[start[0] + random.uniform(0, 10), start[1] + random.uniform(0, 10)] for _ in range(num_steps)] for _ in range(num_particles)]
+velocities = [[[random.uniform(-1, 1), random.uniform(-1, 1)] for _ in range(num_steps)] for _ in range(num_particles)]
+
+# Personal and global best
+pbest = [list(p) for p in particles]
+pbest_scores = [fitness(p) for p in particles]
+gbest = pbest[pbest_scores.index(min(pbest_scores))]
+
+# PSO loop
+for iteration in range(max_iterations):
+    for i in range(num_particles):
+        for j in range(num_steps):
+            r1, r2 = random.random(), random.random()
+            velocities[i][j][0] = w*velocities[i][j][0] + c1*r1*(pbest[i][j][0] - particles[i][j][0]) + c2*r2*(gbest[j][0] - particles[i][j][0])
+            velocities[i][j][1] = w*velocities[i][j][1] + c1*r1*(pbest[i][j][1] - particles[i][j][1]) + c2*r2*(gbest[j][1] - particles[i][j][1])
+            
+            # Update position
+            particles[i][j][0] += velocities[i][j][0]
+            particles[i][j][1] += velocities[i][j][1]
+        
+        score = fitness(particles[i])
+        if score < pbest_scores[i]:
+            pbest[i] = [list(pos) for pos in particles[i]]
+            pbest_scores[i] = score
+    
+    gbest = pbest[pbest_scores.index(min(pbest_scores))]
+    print(f"Iteration {iteration+1}: Best Score = {fitness(gbest):.3f}")
+
+print("\nOptimized Path:")
+for step in gbest:
+    print(f"({step[0]:.2f}, {step[1]:.2f})")
