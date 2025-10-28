@@ -1,0 +1,63 @@
+import numpy as np
+
+# Step 1: Define the Rastrigin function
+def rastrigin(position):
+    x, y = position
+    return 20 + (x**2 - 10 * np.cos(2 * np.pi * x)) + (y**2 - 10 * np.cos(2 * np.pi * y))
+
+# Step 2: Initialize parameters
+rows, cols = 10, 10            # Grid of 100 cells
+iterations = 100               # Number of iterations
+alpha = 0.5                    # Learning rate
+lower_bound, upper_bound = -5.12, 5.12  # Search space limits
+
+# Step 3: Initialize population (random positions)
+positions = np.random.uniform(lower_bound, upper_bound, (rows, cols, 2))
+fitness = np.zeros((rows, cols))
+
+# Step 4: Evaluate initial fitness
+for i in range(rows):
+    for j in range(cols):
+        fitness[i, j] = rastrigin(positions[i, j])
+
+# Function to get Moore neighborhood (8 neighbors)
+def get_neighbors(i, j):
+    neighbors = []
+    for dx in [-1, 0, 1]:
+        for dy in [-1, 0, 1]:
+            if dx == 0 and dy == 0:
+                continue
+            ni, nj = (i + dx) % rows, (j + dy) % cols  # wrap-around grid
+            neighbors.append((ni, nj))
+    return neighbors
+
+# Step 5: Main optimization loop
+for t in range(iterations):
+    new_positions = np.copy(positions)
+    
+    for i in range(rows):
+        for j in range(cols):
+            neighbors = get_neighbors(i, j)
+            best_neighbor = min(neighbors, key=lambda n: fitness[n])
+            best_pos = positions[best_neighbor]
+            
+            # Move toward the best neighbor
+            new_pos = positions[i, j] + alpha * (best_pos - positions[i, j])
+            new_pos = np.clip(new_pos, lower_bound, upper_bound)
+            new_positions[i, j] = new_pos
+    
+    # Update population
+    positions = new_positions
+    
+    # Recalculate fitness
+    for i in range(rows):
+        for j in range(cols):
+            fitness[i, j] = rastrigin(positions[i, j])
+
+# Step 6: Output best result
+best_index = np.unravel_index(np.argmin(fitness), fitness.shape)
+best_solution = positions[best_index]
+best_fitness = fitness[best_index]
+
+print("✅ Best Solution Found:", best_solution)
+print("✅ Best Fitness Value:", best_fitness)
